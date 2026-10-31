@@ -23,8 +23,8 @@ evaluate: build
     mkdir -p {{out}}
     @echo "TODO evaluate -> {{out}}/correctness.csv"
 
-# Scalability: time and resource use as the input grows (Figure 5.2). hyperfine repeats every run
-# and records mean and spread per input size; `smoke` makes 2 runs per size instead of 10.
+# hyperfine repeats every run and records mean and spread per input size.
+# Scalability: time as the input grows (Figure 5.2). `smoke` makes 2 runs per size instead of 10.
 benchmark smoke="": build
     mkdir -p {{out}}
     hyperfine --warmup 1 --runs {{ if smoke == "" { "10" } else { "2" } }} \
@@ -40,8 +40,8 @@ robustness smoke="": build
 reproduce *flags: evaluate (benchmark flags) (robustness flags)
     @echo "regenerated into {{out}}/"
 
-# Compare a fresh run in out/ with the results committed under experiments/, ignoring timings,
-# which differ on every machine: verdicts, counts and sizes must match exactly.
+# Timings differ on every machine; verdicts, counts and sizes must match exactly.
+# Compare a fresh run in out/ with the results committed under experiments/, ignoring timings.
 check:
     @echo "TODO diff {{out}}/ against the committed results in experiments/, ignoring wall-clock columns"
 
