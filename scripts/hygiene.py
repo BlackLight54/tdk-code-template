@@ -37,6 +37,8 @@ STANDALONE = r"\\documentclass(\[[^]]*\])?\{standalone\}"
 # --publish: what the Zenodo record and the README need (frozen list: publish-checks.md).
 SUPERVISORS = ["Farkas, Martin", "Kocsis, Imre"]
 PLACEHOLDER = r"TODO|<[^<>\n]+>|10\.xxxx"
+# Zenodo descriptions are HTML, so a tag such as <i> or </p> is not a placeholder.
+HTML_TAG = r"</?(a|b|i|u|p|em|strong|br|hr|ul|ol|li|code|pre|sup|sub|span|div|h[1-6]|blockquote|img|table|tr|td|th)(\s[^<>]*)?/?>"
 ORCID = r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]"
 REQUIRED_FILES = {"README.md": r"README\.md", "LICENSE": r"LICEN[CS]E(\.\w+)?", ".zenodo.json": r"\.zenodo\.json",
                   "CITATION.cff": r"CITATION\.cff", "justfile": r"[jJ]ustfile", ".devcontainer/": r"\.devcontainer/.+"}
@@ -152,7 +154,8 @@ def check_zenodo():
     for c in z.get("creators", []) + z.get("contributors", []):
         if "orcid" in c and not re.fullmatch(ORCID, str(c["orcid"])):
             report("error", "zenodo", f"orcid {c['orcid']!r} of {c.get('name', '?')} is not an ORCID iD; fill it in or remove the field", ".zenodo.json")
-    for m in sorted(set(re.findall(PLACEHOLDER, json.dumps(z, ensure_ascii=False)))):
+    for m in sorted({m for m in re.findall(PLACEHOLDER, json.dumps(z, ensure_ascii=False))
+                     if not re.fullmatch(HTML_TAG, m, re.I)}):
         report("error", "zenodo", f"placeholder {m!r} left; a placeholder fails the Zenodo release", ".zenodo.json")
     date = z.get("publication_date")
     if date is not None:
