@@ -238,15 +238,19 @@ def check_secrets_and_ignores(tracked):
         if re.search(SECRET_PATHS, f, re.I) and not f.endswith(".env.example"):
             report("error", "secret-file", "secret-like file is tracked; keep it in an untracked .env and commit "
                    "placeholders in .env.example", f)
-    lines = read(".gitleaksignore").splitlines()
-    for n, line in enumerate(lines, 1):
+    # A reason comment covers the contiguous block of entries directly below it, up to the next
+    # blank line or comment; an entry whose block has no comment above it is an error.
+    covered = False
+    for n, line in enumerate(read(".gitleaksignore").splitlines(), 1):
         line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if not re.fullmatch(FINGERPRINT, line):
+        if not line:
+            covered = False
+        elif line.startswith("#"):
+            covered = True
+        elif not re.fullmatch(FINGERPRINT, line):
             report("error", "gitleaksignore", "not an exact gitleaks fingerprint (commit:path:rule:line)", ".gitleaksignore", n)
-        elif n < 2 or not lines[n - 2].strip().startswith("#"):
-            report("error", "gitleaksignore", "put a one-line reason as a comment directly above this entry", ".gitleaksignore", n)
+        elif not covered:
+            report("error", "gitleaksignore", "put a one-line reason as a comment directly above this entry's block", ".gitleaksignore", n)
 
 
 def publish_checks(hist):
